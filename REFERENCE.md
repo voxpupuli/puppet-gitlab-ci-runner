@@ -57,11 +57,15 @@ Data type: `Hash`
 
 Hashkeys are used as $title in runners.pp. The subkeys have to be named as the parameter names from ´gitlab-runner register´ command cause they're later joined to one entire string using 2 hyphen to look like shell command parameters. See ´https://docs.gitlab.com/runner/register/#one-line-registration-command´ for details.
 
+Default value: {}
+
 ##### `runner_defaults`
 
 Data type: `Hash`
 
 A hash with defaults which will be later merged with $runners.
+
+Default value: {}
 
 ##### `xz_package_name`
 
@@ -179,29 +183,54 @@ Default value: '/etc/gitlab-runner/config.toml'
 
 This module installs and configures Gitlab CI Runners.
 
+#### Examples
+
+##### Simple runner registration
+
+```puppet
+gitlab_ci_runner::runner { example_runner:
+  config => {
+    'registration-token' => 'gitlab-token',
+    'url'                => 'https://gitlab.com',
+    'tag-list'           => 'docker,aws',
+  },
+}
+```
+
 #### Parameters
 
 The following parameters are available in the `gitlab_ci_runner::runner` defined type.
 
+##### `config`
+
+Data type: `Hash`
+
+Hash with configuration options.
+See https://docs.gitlab.com/runner/configuration/advanced-configuration.html for all possible options.
+
+##### `ensure`
+
+Data type: `Enum['present', 'absent']`
+
+If the runner should be 'present' or 'absent'. Will register/unregister the runner from Gitlab.
+
+Default value: 'present'
+
+##### `runner_name`
+
+Data type: `String[1]`
+
+The name of the runner.
+
+Default value: $title
+
 ##### `binary`
 
-Data type: `String`
+Data type: `String[1]`
 
 The name of the Gitlab runner binary.
 
-##### `runners_hash`
-
-Data type: `Hash`
-
-Hash with configuration for runners.
-
-##### `default_config`
-
-Data type: `Hash`
-
-Hash with default configration for runners. This will be merged with the runners_hash config.
-
-Default value: {}
+Default value: 'gitlab-runner'
 
 ## Tasks
 

@@ -1,53 +1,65 @@
 # @summary This module installs and configures Gitlab CI Runners.
 #
+# @example Simple runner registration
+#   gitlab_ci_runner::runner { example_runner:
+#     config => {
+#       'registration-token' => 'gitlab-token',
+#       'url'                => 'https://gitlab.com',
+#       'tag-list'           => 'docker,aws',
+#     },
+#   }
+#
+# @param config
+#   Hash with configuration options.
+#   See https://docs.gitlab.com/runner/configuration/advanced-configuration.html for all possible options.
+# @param ensure
+#   If the runner should be 'present' or 'absent'. Will register/unregister the runner from Gitlab.
+# @param runner_name
+#   The name of the runner.
 # @param binary
 #   The name of the Gitlab runner binary.
-# @param runners_hash
-#   Hash with configuration for runners.
-# @param default_config
-#   Hash with default configration for runners. This will be merged with the runners_hash config.
 #
 define gitlab_ci_runner::runner (
-  String $binary,
-  Hash $runners_hash,
-  Hash $default_config = {},
+  Hash                      $config,
+  Enum['present', 'absent'] $ensure      = 'present',
+  String[1]                 $runner_name = $title,
+  String[1]                 $binary      = 'gitlab-runner',
 ) {
   # Set resource name as name for the runner and replace under_scores for later use
-  $title_no_underscore = regsubst($title, '_', '-', 'G')
-  $name_config = {
-    name => $title_no_underscore,
-  }
-  $_default_config = merge($default_config, $name_config)
-  $config = $runners_hash[$title]
+  $_name = regsubst($runner_name, '_', '-', 'G')
 
-  # Pull out ensure key, which shouldn't be passed to command
-  $ensure = $config['ensure']
-  $config_without_ensure = delete($config, 'ensure')
+  # To be able to use all parameters as command line arguments,
+  # we have to transform the configuration into something the gitlab-runner
+  # binary accepts:
+  # * Always prefix the options with '--'
+  # * Always join option names and values with '='
+  #
+  # In the end, flatten thewhole array and join all elements with a space as delimiter
+  $__config = $config.map |$item| {
+    # Ensure all keys use '-' instead of '_'. Needed for e.g. build_dir.
+    $key = regsubst($item[0], '_', '-', 'G')
 
-  # Merge default config with actual config
-  $_config = merge($_default_config, $config_without_ensure)
-
-  # Convert configuration into a string
-  $parameters_array = join_keys_to_values($_config, '=')
-  $parameters_array_no_underscores = regsubst($parameters_array, '_', '-', 'G')
-  $parameters_array_dashes = prefix($parameters_array_no_underscores, '--')
-  $parameters_string = join($parameters_array_dashes, ' ')
-
-  $runner_name = $_config['name']
-  $toml_file = '/etc/gitlab-runner/config.toml'
-
-  if $ensure == 'absent' {
-      # Execute gitlab ci multirunner unregister
-      exec {"Unregister_runner_${title}":
-        command => "/usr/bin/${binary} unregister -n ${runner_name}",
-        onlyif  => "/bin/grep \'${runner_name}\' ${toml_file}",
+    # If the value ($item[1]) is an Array multiple elements are added for each item
+    if $item[1] =~ Array {
+      $item[1].map |$nested| {
+        "--${key}=${nested}"
       }
     } else {
-      # Execute gitlab ci multirunner register
-      exec {"Register_runner_${title}":
-        command => "/usr/bin/${binary} register -n ${parameters_string}",
-        unless  => "/bin/grep -F \'${runner_name}\' ${toml_file}",
-      }
+      "--${key}=${item[1]}"
     }
+  }.flatten.join(' ')
 
+  if $ensure == 'absent' {
+    # Execute gitlab ci multirunner unregister
+    exec {"Unregister_runner_${title}":
+      command => "/usr/bin/${binary} unregister -n ${_name}",
+      onlyif  => "/bin/grep \'${_name}\' /etc/gitlab-runner/config.toml",
+    }
+  } else {
+    # Execute gitlab ci multirunner register
+    exec {"Register_runner_${title}":
+      command => "/usr/bin/${binary} register -n ${__config}",
+      unless  => "/bin/grep -F \'${_name}\' /etc/gitlab-runner/config.toml",
+    }
+  }
 }

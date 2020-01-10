@@ -45,9 +45,9 @@
 #   The path to the config file of Gitlab runner.
 #
 class gitlab_ci_runner (
-  Hash                       $runners,
-  Hash                       $runner_defaults,
-  String                     $xz_package_name,
+  String                     $xz_package_name, # Defaults in module hieradata
+  Hash                       $runners                  = {},
+  Hash                       $runner_defaults          = {},
   Optional[Integer]          $concurrent               = undef,
   Optional[String]           $builds_dir               = undef,
   Optional[String]           $cache_dir                = undef,
@@ -90,12 +90,20 @@ class gitlab_ci_runner (
   -> Class['gitlab_ci_runner::config']
   ~> Class['gitlab_ci_runner::service']
 
-  $_runners = $runners.keys
-  gitlab_ci_runner::runner { $_runners:
-    binary         => $package_name,
-    default_config => $runner_defaults,
-    runners_hash   => $runners,
-    require        => Class['gitlab_ci_runner::config'],
-    notify         => Class['gitlab_ci_runner::service'],
+  $runners.each |$runner_name,$config| {
+    $_config = merge($runner_defaults, $config)
+    $ensure  = $_config['ensure']
+    $title   = $_config['name'] ? {
+      undef   => $runner_name,
+      default => $_config['name'],
+    }
+
+    gitlab_ci_runner::runner { $title:
+      ensure  => $ensure,
+      config  => $_config - ['ensure', 'name'],
+      binary  => $package_name,
+      require => Class['gitlab_ci_runner::config'],
+      notify  => Class['gitlab_ci_runner::service'],
+    }
   }
 }
