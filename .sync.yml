@@ -18,3 +18,4 @@ Gemfile:
   optional:
     ':test':
       - gem: 'webmock'
+      - gem: 'toml-rb'

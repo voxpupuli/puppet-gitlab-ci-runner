@@ -36,106 +36,129 @@ describe 'gitlab_ci_runner', type: :class do
           that_notifies('Class[gitlab_ci_runner::service]')
       end
       it { is_expected.to contain_class('gitlab_ci_runner::service') }
-      it { is_expected.to contain_file('/etc/gitlab-runner/config.toml') }
 
-      it { is_expected.not_to contain_file_line('gitlab-runner-concurrent') }
-      it { is_expected.not_to contain_file_line('gitlab-runner-metrics_server') }
-      it { is_expected.not_to contain_file_line('gitlab-runner-builds_dir') }
-      it { is_expected.not_to contain_file_line('gitlab-runner-cache_dir') }
+      it do
+        is_expected.to contain_concat('/etc/gitlab-runner/config.toml').
+          with(
+            ensure: 'present',
+            owner: 'root',
+            group: 'root',
+            mode: '0444',
+            ensure_newline: true
+          )
+      end
+
+      it do
+        is_expected.to contain_concat__fragment('/etc/gitlab-runner/config.toml - header').
+          with(
+            target: '/etc/gitlab-runner/config.toml',
+            order: 0,
+            content: '# MANAGED BY PUPPET'
+          )
+      end
 
       context 'with concurrent => 10' do
         let(:params) do
           {
-            'runner_defaults' => {},
-            'runners' => {},
             'concurrent' => 10
           }
         end
 
         it do
-          is_expected.to contain_file_line('gitlab-runner-concurrent').with('path' => '/etc/gitlab-runner/config.toml',
-                                                                            'line'  => 'concurrent = 10',
-                                                                            'match' => '^concurrent = \d+')
-        end
-      end
-      context 'with metrics_server => localhost:9252' do
-        let(:params) do
-          {
-            'runner_defaults' => {},
-            'runners' => {},
-            'metrics_server' => 'localhost:9252'
-          }
-        end
-
-        it do
-          is_expected.to contain_file_line('gitlab-runner-metrics_server').with('path' => '/etc/gitlab-runner/config.toml',
-                                                                                'line'  => 'metrics_server = "localhost:9252"',
-                                                                                'match' => '^metrics_server = .+')
-        end
-      end
-      context 'with listen_address => localhost:9252' do
-        let(:params) do
-          {
-            'runner_defaults' => {},
-            'runners' => {},
-            'listen_address' => 'localhost:9252'
-          }
-        end
-
-        it do
-          is_expected.to contain_file_line('gitlab-runner-listen-address').
+          is_expected.to contain_concat__fragment('/etc/gitlab-runner/config.toml - global options').
             with(
-              path: '/etc/gitlab-runner/config.toml',
-              line: 'listen_address = "localhost:9252"',
-              match: '^listen_address = .+'
+              target: '/etc/gitlab-runner/config.toml',
+              order: 1,
+              content: %r{concurrent = 10}
             )
         end
       end
-      context 'with builds_dir => /tmp/builds_dir' do
+
+      context 'with log_level => error' do
         let(:params) do
           {
-            'runner_defaults' => {},
-            'runners' => {},
-            'builds_dir' => '/tmp/builds_dir'
+            'log_level' => 'error'
           }
         end
 
         it do
-          is_expected.to contain_file_line('gitlab-runner-builds_dir').with('path' => '/etc/gitlab-runner/config.toml',
-                                                                            'line'  => 'builds_dir = "/tmp/builds_dir"',
-                                                                            'match' => '^builds_dir = .+')
+          is_expected.to contain_concat__fragment('/etc/gitlab-runner/config.toml - global options').
+            with(
+              target: '/etc/gitlab-runner/config.toml',
+              order: 1,
+              content: %r{log_level = "error"}
+            )
         end
       end
-      context 'with cache_dir => /tmp/cache_dir' do
+
+      context 'with log_format => json' do
         let(:params) do
           {
-            'runner_defaults' => {},
-            'runners' => {},
-            'cache_dir' => '/tmp/cache_dir'
+            'log_format' => 'json'
           }
         end
 
         it do
-          is_expected.to contain_file_line('gitlab-runner-cache_dir').with('path' => '/etc/gitlab-runner/config.toml',
-                                                                           'line'  => 'cache_dir = "/tmp/cache_dir"',
-                                                                           'match' => '^cache_dir = .+')
+          is_expected.to contain_concat__fragment('/etc/gitlab-runner/config.toml - global options').
+            with(
+              target: '/etc/gitlab-runner/config.toml',
+              order: 1,
+              content: %r{log_format = "json"}
+            )
         end
       end
+
+      context 'with check_interval => 6' do
+        let(:params) do
+          {
+            'check_interval' => 6
+          }
+        end
+
+        it do
+          is_expected.to contain_concat__fragment('/etc/gitlab-runner/config.toml - global options').
+            with(
+              target: '/etc/gitlab-runner/config.toml',
+              order: 1,
+              content: %r{check_interval = 6}
+            )
+        end
+      end
+
       context 'with sentry_dsn => https://123abc@localhost/1' do
         let(:params) do
           {
-            'runner_defaults' => {},
-            'runners' => {},
             'sentry_dsn' => 'https://123abc@localhost/1'
           }
         end
 
         it do
-          is_expected.to contain_file_line('gitlab-runner-sentry_dsn').with('path' => '/etc/gitlab-runner/config.toml',
-                                                                            'line'  => 'sentry_dsn = "https://123abc@localhost/1"',
-                                                                            'match' => '^sentry_dsn = .+')
+          is_expected.to contain_concat__fragment('/etc/gitlab-runner/config.toml - global options').
+            with(
+              target: '/etc/gitlab-runner/config.toml',
+              order: 1,
+              content: %r{sentry_dsn = "https://123abc@localhost/1"}
+            )
         end
       end
+
+      context 'with listen_address => localhost:9252' do
+        let(:params) do
+          {
+            'listen_address' => 'localhost:9252'
+          }
+        end
+
+        it do
+          is_expected.to contain_concat__fragment('/etc/gitlab-runner/config.toml - global options').
+            with(
+              target: '/etc/gitlab-runner/config.toml',
+              order: 1,
+              content: %r{listen_address = "localhost:9252"}
+            )
+        end
+      end
+
       context 'with ensure => present' do
         let(:params) do
           super().merge(

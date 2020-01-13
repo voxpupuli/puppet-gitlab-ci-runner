@@ -20,6 +20,11 @@ _Private Classes_
 
 * [`gitlab_ci_runner::runner`](#gitlab_ci_runnerrunner): This module installs and configures Gitlab CI Runners.
 
+**Data types**
+
+* [`Gitlab_ci_runner::Log_format`](#gitlab_ci_runnerlog_format): Gitlab Runner log format configuration
+* [`Gitlab_ci_runner::Log_level`](#gitlab_ci_runnerlog_level): Gitlab Runner log level configuration
+
 **Tasks**
 
 * [`register_runner`](#register_runner): Registers a runner on a Gitlab instance.
@@ -81,35 +86,27 @@ Limits how many jobs globally can be run concurrently. The most upper limit of j
 
 Default value: `undef`
 
-##### `builds_dir`
+##### `log_level`
 
-Data type: `Optional[String]`
+Data type: `Optional[Gitlab_ci_runner::Log_level]`
 
-Absolute path to a directory where builds will be stored in context of selected executor (Locally, Docker, SSH).
-
-Default value: `undef`
-
-##### `cache_dir`
-
-Data type: `Optional[String]`
-
-Absolute path to a directory where build caches will be stored in context of selected executor (locally, Docker, SSH). If the docker executor is used, this directory needs to be included in its volumes parameter.
+Log level (options: debug, info, warn, error, fatal, panic). Note that this setting has lower priority than level set by command line argument --debug, -l or --log-level
 
 Default value: `undef`
 
-##### `metrics_server`
+##### `log_format`
 
-Data type: `Optional[Pattern[/.*:.+/]]`
+Data type: `Optional[Gitlab_ci_runner::Log_format]`
 
-(Deprecated) [host]:<port> to enable metrics server as described in https://docs.gitlab.com/runner/monitoring/README.html#configuration-of-the-metrics-http-server.
+Log format (options: runner, text, json). Note that this setting has lower priority than format set by command line argument --log-format
 
 Default value: `undef`
 
-##### `listen_address`
+##### `check_interval`
 
-Data type: `Optional[Pattern[/.*:.+/]]`
+Data type: `Optional[Integer]`
 
-Address (<host>:<port>) on which the Prometheus metrics HTTP server should be listening.
+defines the interval length, in seconds, between new jobs check. The default value is 3; if set to 0 or lower, the default value will be used.
 
 Default value: `undef`
 
@@ -118,6 +115,14 @@ Default value: `undef`
 Data type: `Optional[String]`
 
 Enable tracking of all system level errors to sentry.
+
+Default value: `undef`
+
+##### `listen_address`
+
+Data type: `Optional[Pattern[/.*:.+/]]`
+
+Address (<host>:<port>) on which the Prometheus metrics HTTP server should be listening.
 
 Default value: `undef`
 
@@ -231,6 +236,20 @@ Data type: `String[1]`
 The name of the Gitlab runner binary.
 
 Default value: 'gitlab-runner'
+
+## Data types
+
+### Gitlab_ci_runner::Log_format
+
+Gitlab Runner log format configuration
+
+Alias of `Enum['runner', 'text', 'json']`
+
+### Gitlab_ci_runner::Log_level
+
+Gitlab Runner log level configuration
+
+Alias of `Enum['debug', 'info', 'warn', 'error', 'fatal', 'panic']`
 
 ## Tasks
 
