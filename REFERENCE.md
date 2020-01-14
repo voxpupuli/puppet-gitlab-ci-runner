@@ -132,7 +132,7 @@ Data type: `Boolean`
 
 If docker should be installs (uses the puppetlabs-docker).
 
-Default value: `true`
+Default value: `false`
 
 ##### `manage_repo`
 

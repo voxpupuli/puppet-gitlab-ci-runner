@@ -4,11 +4,7 @@ describe 'gitlab_ci_runner', type: :class do
   on_supported_os.each do |os, facts|
     context "on #{os}" do
       let(:facts) do
-        # Workaround a puppet-spec issue Debian 9
-        # https://github.com/rodjek/rspec-puppet/issues/629
-        facts.merge(
-          operatingsystemmajrelease: '9'
-        )
+        facts
       end
       let(:params) do
         {
@@ -26,7 +22,7 @@ describe 'gitlab_ci_runner', type: :class do
 
       it { is_expected.to compile.with_all_deps }
 
-      it { is_expected.to contain_class('docker::images') }
+      it { is_expected.not_to contain_class('docker::images') }
       it { is_expected.to contain_package('gitlab-runner') }
       it { is_expected.to contain_service('gitlab-runner') }
       it { is_expected.to contain_class('gitlab_ci_runner::install') }
@@ -189,6 +185,32 @@ describe 'gitlab_ci_runner', type: :class do
         it { is_expected.to contain_gitlab_ci_runner__runner('test_runner') }
         it { is_expected.to contain_exec('Unregister_runner_test_runner').with('command' => %r{/usr/bin/[^ ]+ unregister }) }
         it { is_expected.not_to contain_exec('Unregister_runner_test_runner').with('command' => %r{--ensure=}) }
+      end
+
+      # puppetlabs-docker doesn't support CentOS 6 anymore.
+      unless facts[:os]['name'] == 'CentOS' && facts[:os]['release']['major'] == '6'
+        context 'with manage_docker => true' do
+          let(:params) do
+            {
+              manage_docker: true
+            }
+          end
+
+          it { is_expected.to compile }
+
+          it { is_expected.to contain_class('docker') }
+          it do
+            is_expected.to contain_class('docker::images').
+              with(
+                images: {
+                  'ubuntu_trusty' => {
+                    'image'     => 'ubuntu',
+                    'image_tag' => 'trusty'
+                  }
+                }
+              )
+          end
+        end
       end
 
       context 'with manage_repo => true' do
