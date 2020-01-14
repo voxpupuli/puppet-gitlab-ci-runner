@@ -5,104 +5,164 @@ describe 'gitlab_ci_runner::runner' do
     context "on #{os}" do
       let(:facts) { facts }
       let(:title) { 'testrunner' }
-      let(:default_params) do
-        {
-          config: {
-            'registration-token' => 'gitlab-token',
-            'url'                => 'https://gitlab.com'
-          }
-        }
-      end
 
-      context 'with default params' do
-        let(:params) { default_params }
-
-        it { is_expected.to compile.with_all_deps }
-
-        it do
-          is_expected.to contain_exec('Register_runner_testrunner').with(
-            command: '/usr/bin/gitlab-runner register -n --registration-token=gitlab-token --url=https://gitlab.com',
-            unless: "/bin/grep -F 'testrunner' /etc/gitlab-runner/config.toml"
-          )
-        end
-      end
-
-      context 'with ensure => absent' do
-        let(:params) do
-          default_params.merge(ensure: 'absent')
-        end
-
-        it { is_expected.to compile.with_all_deps }
-
-        it do
-          is_expected.to contain_exec('Unregister_runner_testrunner').with(
-            command: '/usr/bin/gitlab-runner unregister -n testrunner',
-            onlyif: "/bin/grep 'testrunner' /etc/gitlab-runner/config.toml"
-          )
-        end
-      end
-
-      context 'with runner_name/title including a _' do
-        let(:title) { 'test_runner' }
-        let(:params) { default_params }
-
-        context 'with ensure => present' do
-          it { is_expected.to compile.with_all_deps }
-          it { is_expected.to contain_exec('Register_runner_test_runner').with_unless(%r{^/bin/grep -F 'test-runner'}) }
-        end
-
-        context 'with ensure => absent' do
-          let(:params) do
-            super().merge(ensure: 'absent')
-          end
-
-          it { is_expected.to compile.with_all_deps }
-          it { is_expected.to contain_exec('Unregister_runner_test_runner').with_onlyif(%r{^/bin/grep 'test-runner'}) }
-        end
-      end
-
-      context 'with binary => special-gitlab-runner' do
-        let(:params) { default_params.merge(binary: 'special-gitlab-runner') }
-
-        context 'with ensure => present' do
-          it { is_expected.to compile.with_all_deps }
-          it { is_expected.to contain_exec('Register_runner_testrunner').with_command(%r{^/usr/bin/special-gitlab-runner}) }
-        end
-
-        context 'with ensure => absent' do
-          let(:params) do
-            super().merge(ensure: 'absent')
-          end
-
-          it { is_expected.to compile.with_all_deps }
-          it { is_expected.to contain_exec('Unregister_runner_testrunner').with_command(%r{^/usr/bin/special-gitlab-runner}) }
-        end
-      end
-
-      context 'with config having a key containing _' do
+      context 'with simple shell runner' do
         let(:params) do
           {
             config: {
-              build_dir: '/tmp'
+              url: 'https://gitlab.com',
+              token: '123456789abcdefgh',
+              executor: 'shell'
             }
           }
         end
 
         it { is_expected.to compile.with_all_deps }
-        it { is_expected.to contain_exec('Register_runner_testrunner').with_command(%r{--build-dir=/tmp}) }
+
+        it do
+          verify_concat_fragment_exact_contents(
+            catalogue,
+            '/etc/gitlab-runner/config.toml - testrunner',
+            [
+              '[[runners]]',
+              'name = "testrunner"',
+              'url = "https://gitlab.com"',
+              'token = "123456789abcdefgh"',
+              'executor = "shell"'
+            ]
+          )
+        end
       end
 
-      context 'with config having a key which has an array as value' do
+      context 'with autoscaling runner with DigitalOcean as IaaS' do
         let(:params) do
           {
             config: {
-              'docker-volumes' => ['test0:/test0', 'test1:/test1']
+              url: 'https://gitlab.com',
+              token: '123456789abcdefgh',
+              name: 'autoscale-runner',
+              executor: 'docker+machine',
+              limit: 10,
+              docker: {
+                image: 'ruby:2.6'
+              },
+              machine: {
+                OffPeakPeriods: [
+                  '* * 0-9,18-23 * * mon-fri *',
+                  '* * * * * sat,sun *'
+                ],
+                OffPeakIdleCount: 1,
+                OffPeakIdleTime: 1200,
+                IdleCount: 5,
+                IdleTime: 600,
+                MaxBuilds: 100,
+                MachineName: 'auto-scale-%s',
+                MachineDriver: 'digitalocean',
+                MachineOptions: [
+                  'digitalocean-image=coreos-stable',
+                  'digitalocean-ssh-user=core',
+                  'digitalocean-access-token=DO_ACCESS_TOKEN',
+                  'digitalocean-region=nyc2',
+                  'digitalocean-size=4gb',
+                  'digitalocean-private-networking',
+                  'engine-registry-mirror=http://10.11.12.13:12345'
+                ]
+              },
+              cache: {
+                Type: 's3',
+                s3: {
+                  ServerAddress: 's3-eu-west-1.amazonaws.com',
+                  AccessKey: 'AMAZON_S3_ACCESS_KEY',
+                  SecretKey: 'AMAZON_S3_SECRET_KEY',
+                  BucketName: 'runner',
+                  Insecure: false
+                }
+              }
             }
           }
         end
 
         it { is_expected.to compile.with_all_deps }
-        it { is_expected.to contain_exec('Register_runner_testrunner').with_command(%r{--docker-volumes=test0:/test0 --docker-volumes=test1:/test1}) }
+
+        it do
+          verify_concat_fragment_exact_contents(
+            catalogue,
+            '/etc/gitlab-runner/config.toml - testrunner',
+            [
+              '[[runners]]',
+              'url = "https://gitlab.com"',
+              'token = "123456789abcdefgh"',
+              'name = "autoscale-runner"',
+              'executor = "docker+machine"',
+              'limit = 10',
+              '[runners.docker]',
+              'image = "ruby:2.6"',
+              '[runners.machine]',
+              'OffPeakPeriods = ["* * 0-9,18-23 * * mon-fri *", "* * * * * sat,sun *"]',
+              'OffPeakIdleCount = 1',
+              'OffPeakIdleTime = 1200',
+              'IdleCount = 5',
+              'IdleTime = 600',
+              'MaxBuilds = 100',
+              'MachineName = "auto-scale-%s"',
+              'MachineDriver = "digitalocean"',
+              'MachineOptions = ["digitalocean-image=coreos-stable", "digitalocean-ssh-user=core", "digitalocean-access-token=DO_ACCESS_TOKEN", "digitalocean-region=nyc2", "digitalocean-size=4gb", "digitalocean-private-networking", "engine-registry-mirror=http://10.11.12.13:12345"]',
+              '[runners.cache]',
+              'Type = "s3"',
+              '[runners.cache.s3]',
+              'ServerAddress = "s3-eu-west-1.amazonaws.com"',
+              'AccessKey = "AMAZON_S3_ACCESS_KEY"',
+              'SecretKey = "AMAZON_S3_SECRET_KEY"',
+              'BucketName = "runner"',
+              'Insecure = false'
+            ]
+          )
+        end
+      end
+
+      context 'with name not included in config' do
+        let(:params) do
+          {
+            config: {
+            }
+          }
+        end
+
+        it { is_expected.to compile.with_all_deps }
+
+        it do
+          verify_concat_fragment_exact_contents(
+            catalogue,
+            '/etc/gitlab-runner/config.toml - testrunner',
+            [
+              '[[runners]]',
+              'name = "testrunner"'
+            ]
+          )
+        end
+      end
+
+      context 'with name included in config' do
+        let(:params) do
+          {
+            config: {
+              name: 'foo-runner'
+            }
+          }
+        end
+
+        it { is_expected.to compile.with_all_deps }
+
+        it do
+          verify_concat_fragment_exact_contents(
+            catalogue,
+            '/etc/gitlab-runner/config.toml - testrunner',
+            [
+              '[[runners]]',
+              'name = "foo-runner"'
+            ]
+          )
+        end
       end
     end
   end

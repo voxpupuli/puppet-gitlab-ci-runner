@@ -18,7 +18,7 @@ _Private Classes_
 
 **Defined types**
 
-* [`gitlab_ci_runner::runner`](#gitlab_ci_runnerrunner): This module installs and configures Gitlab CI Runners.
+* [`gitlab_ci_runner::runner`](#gitlab_ci_runnerrunner): This configures a Gitlab CI runner.
 
 **Data types**
 
@@ -186,18 +186,67 @@ Default value: '/etc/gitlab-runner/config.toml'
 
 ### gitlab_ci_runner::runner
 
-This module installs and configures Gitlab CI Runners.
+This configures a Gitlab CI runner.
 
 #### Examples
 
-##### Simple runner registration
+##### Add a simple runner
 
 ```puppet
-gitlab_ci_runner::runner { example_runner:
+gitlab_ci_runner::runner { 'testrunner':
+  config               => {
+    'url'              => 'https://gitlab.com',
+    'token'            => '123456789abcdefgh', # Note this is different from the registration token used by `gitlab-runner register`
+    'executor'         => 'shell',
+  },
+}
+```
+
+##### Add a autoscaling runner with DigitalOcean as IaaS
+
+```puppet
+gitlab_ci_runner::runner { 'autoscale-runner':
   config => {
-    'registration-token' => 'gitlab-token',
-    'url'                => 'https://gitlab.com',
-    'tag-list'           => 'docker,aws',
+   url      => 'https://gitlab.com',
+   token    => 'RUNNER_TOKEN', # Note this is different from the registration token used by `gitlab-runner register`
+   name     => 'autoscale-runner',
+   executor => 'docker+machine',
+   limit    => 10,
+   docker   => {
+     image => 'ruby:2.6',
+   },
+   machine  => {
+     OffPeakPeriods   => [
+       '* * 0-9,18-23 * * mon-fri *',
+       '* * * * * sat,sun *',
+     ],
+     OffPeakIdleCount => 1,
+     OffPeakIdleTime  => 1200,
+     IdleCount        => 5,
+     IdleTime         => 600,
+     MaxBuilds        => 100,
+     MachineName      => 'auto-scale-%s',
+     MachineDriver    => 'digitalocean',
+     MachineOptions   => [
+       'digitalocean-image=coreos-stable',
+       'digitalocean-ssh-user=core',
+       'digitalocean-access-token=DO_ACCESS_TOKEN',
+       'digitalocean-region=nyc2',
+       'digitalocean-size=4gb',
+       'digitalocean-private-networking',
+       'engine-registry-mirror=http://10.11.12.13:12345',
+     ],
+   },
+   cache    => {
+     'Type' => 's3',
+     s3     => {
+       ServerAddress => 's3-eu-west-1.amazonaws.com',
+       AccessKey     => 'AMAZON_S3_ACCESS_KEY',
+       SecretKey     => 'AMAZON_S3_SECRET_KEY',
+       BucketName    => 'runner',
+       Insecure      => false,
+     },
+   },
   },
 }
 ```
@@ -212,30 +261,7 @@ Data type: `Hash`
 
 Hash with configuration options.
 See https://docs.gitlab.com/runner/configuration/advanced-configuration.html for all possible options.
-
-##### `ensure`
-
-Data type: `Enum['present', 'absent']`
-
-If the runner should be 'present' or 'absent'. Will register/unregister the runner from Gitlab.
-
-Default value: 'present'
-
-##### `runner_name`
-
-Data type: `String[1]`
-
-The name of the runner.
-
-Default value: $title
-
-##### `binary`
-
-Data type: `String[1]`
-
-The name of the Gitlab runner binary.
-
-Default value: 'gitlab-runner'
+If you omit the 'name' configuration, we will automatically use the $title of this define class.
 
 ## Data types
 

@@ -94,16 +94,13 @@ class gitlab_ci_runner (
 
   $runners.each |$runner_name,$config| {
     $_config = merge($runner_defaults, $config)
-    $ensure  = $_config['ensure']
     $title   = $_config['name'] ? {
       undef   => $runner_name,
       default => $_config['name'],
     }
 
     gitlab_ci_runner::runner { $title:
-      ensure  => $ensure,
       config  => $_config - ['ensure', 'name'],
-      binary  => $package_name,
       require => Class['gitlab_ci_runner::config'],
       notify  => Class['gitlab_ci_runner::service'],
     }
