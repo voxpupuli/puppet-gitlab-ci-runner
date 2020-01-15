@@ -168,11 +168,11 @@ Default value: 'https://packages.gitlab.com'
 
 ##### `repo_keyserver`
 
-Data type: `Stdlib::Fqdn`
+Data type: `Optional[Stdlib::Fqdn]`
 
 The keyserver which should be used to get the repository key.
 
-Default value: 'keys.gnupg.net'
+Default value: `undef`
 
 ##### `config_path`
 

@@ -1,6 +1,10 @@
 require 'spec_helper'
 
 describe 'gitlab_ci_runner', type: :class do
+  let(:undef_value) do
+    Puppet::Util::Package.versioncmp(Puppet.version, '6.0.0') < 0 ? :undef : nil
+  end
+
   on_supported_os.each do |os, facts|
     context "on #{os}" do
       let(:facts) do
@@ -201,7 +205,7 @@ describe 'gitlab_ci_runner', type: :class do
                 repos: 'main',
                 key: {
                   'id' => '1A4C919DB987D435939638B914219A96E15E78F4',
-                  'server' => 'keys.gnupg.net'
+                  'server' => undef_value
                 },
                 include: {
                   'src' => false,
@@ -238,6 +242,24 @@ describe 'gitlab_ci_runner', type: :class do
                 sslcacert: '/etc/pki/tls/certs/ca-bundle.crt',
                 sslverify: '1'
               )
+          end
+        end
+      end
+
+      if facts[:os]['family'] == 'Debian'
+        context 'with manage_repo => true and repo_keyserver => keys.gnupg.net' do
+          let(:params) do
+            super().merge(
+              manage_repo: true,
+              repo_keyserver: 'keys.gnupg.net'
+            )
+          end
+
+          it { is_expected.to compile }
+          it { is_expected.to contain_class('gitlab_ci_runner::repo') }
+
+          it do
+            is_expected.to contain_apt__source('apt_gitlabci').with_key('id' => '1A4C919DB987D435939638B914219A96E15E78F4', 'server' => 'keys.gnupg.net')
           end
         end
       end
