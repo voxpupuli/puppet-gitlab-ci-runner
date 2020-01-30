@@ -18,3 +18,7 @@ Gemfile:
   optional:
     ':test':
       - gem: 'webmock'
+      - gem: 'toml-rb'
+spec/spec_helper.rb:
+  spec_overrides:
+  - require 'spec_helper_local'

@@ -1,53 +1,83 @@
-# @summary This module installs and configures Gitlab CI Runners.
+# @summary This configures a Gitlab CI runner.
 #
-# @param binary
-#   The name of the Gitlab runner binary.
-# @param runners_hash
-#   Hash with configuration for runners.
-# @param default_config
-#   Hash with default configration for runners. This will be merged with the runners_hash config.
+# @example Add a simple runner
+#   gitlab_ci_runner::runner { 'testrunner':
+#     config               => {
+#       'url'              => 'https://gitlab.com',
+#       'token'            => '123456789abcdefgh', # Note this is different from the registration token used by `gitlab-runner register`
+#       'executor'         => 'shell',
+#     },
+#   }
+#
+# @example Add a autoscaling runner with DigitalOcean as IaaS
+#   gitlab_ci_runner::runner { 'autoscale-runner':
+#     config => {
+#      url      => 'https://gitlab.com',
+#      token    => 'RUNNER_TOKEN', # Note this is different from the registration token used by `gitlab-runner register`
+#      name     => 'autoscale-runner',
+#      executor => 'docker+machine',
+#      limit    => 10,
+#      docker   => {
+#        image => 'ruby:2.6',
+#      },
+#      machine  => {
+#        OffPeakPeriods   => [
+#          '* * 0-9,18-23 * * mon-fri *',
+#          '* * * * * sat,sun *',
+#        ],
+#        OffPeakIdleCount => 1,
+#        OffPeakIdleTime  => 1200,
+#        IdleCount        => 5,
+#        IdleTime         => 600,
+#        MaxBuilds        => 100,
+#        MachineName      => 'auto-scale-%s',
+#        MachineDriver    => 'digitalocean',
+#        MachineOptions   => [
+#          'digitalocean-image=coreos-stable',
+#          'digitalocean-ssh-user=core',
+#          'digitalocean-access-token=DO_ACCESS_TOKEN',
+#          'digitalocean-region=nyc2',
+#          'digitalocean-size=4gb',
+#          'digitalocean-private-networking',
+#          'engine-registry-mirror=http://10.11.12.13:12345',
+#        ],
+#      },
+#      cache    => {
+#        'Type' => 's3',
+#        s3     => {
+#          ServerAddress => 's3-eu-west-1.amazonaws.com',
+#          AccessKey     => 'AMAZON_S3_ACCESS_KEY',
+#          SecretKey     => 'AMAZON_S3_SECRET_KEY',
+#          BucketName    => 'runner',
+#          Insecure      => false,
+#        },
+#      },
+#     },
+#   }
+#
+# @param config
+#   Hash with configuration options.
+#   See https://docs.gitlab.com/runner/configuration/advanced-configuration.html for all possible options.
+#   If you omit the 'name' configuration, we will automatically use the $title of this define class.
 #
 define gitlab_ci_runner::runner (
-  String $binary,
-  Hash $runners_hash,
-  Hash $default_config = {},
+  Hash $config,
 ) {
-  # Set resource name as name for the runner and replace under_scores for later use
-  $title_no_underscore = regsubst($title, '_', '-', 'G')
-  $name_config = {
-    name => $title_no_underscore,
+  include gitlab_ci_runner
+
+  $config_path = $gitlab_ci_runner::config_path
+
+  # Use title parameter if config hash doesn't contain one.
+  $_config     = $config['name'] ? {
+    undef   => merge($config, { name => $title }),
+    default => $config,
   }
-  $_default_config = merge($default_config, $name_config)
-  $config = $runners_hash[$title]
 
-  # Pull out ensure key, which shouldn't be passed to command
-  $ensure = $config['ensure']
-  $config_without_ensure = delete($config, 'ensure')
+  $__config = { runners => [ $_config ], }
 
-  # Merge default config with actual config
-  $_config = merge($_default_config, $config_without_ensure)
-
-  # Convert configuration into a string
-  $parameters_array = join_keys_to_values($_config, '=')
-  $parameters_array_no_underscores = regsubst($parameters_array, '_', '-', 'G')
-  $parameters_array_dashes = prefix($parameters_array_no_underscores, '--')
-  $parameters_string = join($parameters_array_dashes, ' ')
-
-  $runner_name = $_config['name']
-  $toml_file = '/etc/gitlab-runner/config.toml'
-
-  if $ensure == 'absent' {
-      # Execute gitlab ci multirunner unregister
-      exec {"Unregister_runner_${title}":
-        command => "/usr/bin/${binary} unregister -n ${runner_name}",
-        onlyif  => "/bin/grep \'${runner_name}\' ${toml_file}",
-      }
-    } else {
-      # Execute gitlab ci multirunner register
-      exec {"Register_runner_${title}":
-        command => "/usr/bin/${binary} register -n ${parameters_string}",
-        unless  => "/bin/grep -F \'${runner_name}\' ${toml_file}",
-      }
-    }
-
+  concat::fragment { "${config_path} - ${title}":
+    target  => $config_path,
+    order   => 2,
+    content => inline_template("<%= require 'toml-rb'; TomlRB.dump(@__config) %>"),
+  }
 }

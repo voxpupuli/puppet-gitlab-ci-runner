@@ -18,7 +18,12 @@ _Private Classes_
 
 **Defined types**
 
-* [`gitlab_ci_runner::runner`](#gitlab_ci_runnerrunner): This module installs and configures Gitlab CI Runners.
+* [`gitlab_ci_runner::runner`](#gitlab_ci_runnerrunner): This configures a Gitlab CI runner.
+
+**Data types**
+
+* [`Gitlab_ci_runner::Log_format`](#gitlab_ci_runnerlog_format): Gitlab Runner log format configuration
+* [`Gitlab_ci_runner::Log_level`](#gitlab_ci_runnerlog_level): Gitlab Runner log level configuration
 
 **Tasks**
 
@@ -57,11 +62,15 @@ Data type: `Hash`
 
 Hashkeys are used as $title in runners.pp. The subkeys have to be named as the parameter names from ´gitlab-runner register´ command cause they're later joined to one entire string using 2 hyphen to look like shell command parameters. See ´https://docs.gitlab.com/runner/register/#one-line-registration-command´ for details.
 
+Default value: {}
+
 ##### `runner_defaults`
 
 Data type: `Hash`
 
 A hash with defaults which will be later merged with $runners.
+
+Default value: {}
 
 ##### `xz_package_name`
 
@@ -77,35 +86,27 @@ Limits how many jobs globally can be run concurrently. The most upper limit of j
 
 Default value: `undef`
 
-##### `builds_dir`
+##### `log_level`
 
-Data type: `Optional[String]`
+Data type: `Optional[Gitlab_ci_runner::Log_level]`
 
-Absolute path to a directory where builds will be stored in context of selected executor (Locally, Docker, SSH).
-
-Default value: `undef`
-
-##### `cache_dir`
-
-Data type: `Optional[String]`
-
-Absolute path to a directory where build caches will be stored in context of selected executor (locally, Docker, SSH). If the docker executor is used, this directory needs to be included in its volumes parameter.
+Log level (options: debug, info, warn, error, fatal, panic). Note that this setting has lower priority than level set by command line argument --debug, -l or --log-level
 
 Default value: `undef`
 
-##### `metrics_server`
+##### `log_format`
 
-Data type: `Optional[Pattern[/.*:.+/]]`
+Data type: `Optional[Gitlab_ci_runner::Log_format]`
 
-(Deprecated) [host]:<port> to enable metrics server as described in https://docs.gitlab.com/runner/monitoring/README.html#configuration-of-the-metrics-http-server.
+Log format (options: runner, text, json). Note that this setting has lower priority than format set by command line argument --log-format
 
 Default value: `undef`
 
-##### `listen_address`
+##### `check_interval`
 
-Data type: `Optional[Pattern[/.*:.+/]]`
+Data type: `Optional[Integer]`
 
-Address (<host>:<port>) on which the Prometheus metrics HTTP server should be listening.
+defines the interval length, in seconds, between new jobs check. The default value is 3; if set to 0 or lower, the default value will be used.
 
 Default value: `undef`
 
@@ -117,13 +118,21 @@ Enable tracking of all system level errors to sentry.
 
 Default value: `undef`
 
+##### `listen_address`
+
+Data type: `Optional[Pattern[/.*:.+/]]`
+
+Address (<host>:<port>) on which the Prometheus metrics HTTP server should be listening.
+
+Default value: `undef`
+
 ##### `manage_docker`
 
 Data type: `Boolean`
 
 If docker should be installs (uses the puppetlabs-docker).
 
-Default value: `true`
+Default value: `false`
 
 ##### `manage_repo`
 
@@ -159,11 +168,11 @@ Default value: 'https://packages.gitlab.com'
 
 ##### `repo_keyserver`
 
-Data type: `Stdlib::Fqdn`
+Data type: `Optional[Stdlib::Fqdn]`
 
 The keyserver which should be used to get the repository key.
 
-Default value: 'keys.gnupg.net'
+Default value: `undef`
 
 ##### `config_path`
 
@@ -177,31 +186,96 @@ Default value: '/etc/gitlab-runner/config.toml'
 
 ### gitlab_ci_runner::runner
 
-This module installs and configures Gitlab CI Runners.
+This configures a Gitlab CI runner.
+
+#### Examples
+
+##### Add a simple runner
+
+```puppet
+gitlab_ci_runner::runner { 'testrunner':
+  config               => {
+    'url'              => 'https://gitlab.com',
+    'token'            => '123456789abcdefgh', # Note this is different from the registration token used by `gitlab-runner register`
+    'executor'         => 'shell',
+  },
+}
+```
+
+##### Add a autoscaling runner with DigitalOcean as IaaS
+
+```puppet
+gitlab_ci_runner::runner { 'autoscale-runner':
+  config => {
+   url      => 'https://gitlab.com',
+   token    => 'RUNNER_TOKEN', # Note this is different from the registration token used by `gitlab-runner register`
+   name     => 'autoscale-runner',
+   executor => 'docker+machine',
+   limit    => 10,
+   docker   => {
+     image => 'ruby:2.6',
+   },
+   machine  => {
+     OffPeakPeriods   => [
+       '* * 0-9,18-23 * * mon-fri *',
+       '* * * * * sat,sun *',
+     ],
+     OffPeakIdleCount => 1,
+     OffPeakIdleTime  => 1200,
+     IdleCount        => 5,
+     IdleTime         => 600,
+     MaxBuilds        => 100,
+     MachineName      => 'auto-scale-%s',
+     MachineDriver    => 'digitalocean',
+     MachineOptions   => [
+       'digitalocean-image=coreos-stable',
+       'digitalocean-ssh-user=core',
+       'digitalocean-access-token=DO_ACCESS_TOKEN',
+       'digitalocean-region=nyc2',
+       'digitalocean-size=4gb',
+       'digitalocean-private-networking',
+       'engine-registry-mirror=http://10.11.12.13:12345',
+     ],
+   },
+   cache    => {
+     'Type' => 's3',
+     s3     => {
+       ServerAddress => 's3-eu-west-1.amazonaws.com',
+       AccessKey     => 'AMAZON_S3_ACCESS_KEY',
+       SecretKey     => 'AMAZON_S3_SECRET_KEY',
+       BucketName    => 'runner',
+       Insecure      => false,
+     },
+   },
+  },
+}
+```
 
 #### Parameters
 
 The following parameters are available in the `gitlab_ci_runner::runner` defined type.
 
-##### `binary`
-
-Data type: `String`
-
-The name of the Gitlab runner binary.
-
-##### `runners_hash`
+##### `config`
 
 Data type: `Hash`
 
-Hash with configuration for runners.
+Hash with configuration options.
+See https://docs.gitlab.com/runner/configuration/advanced-configuration.html for all possible options.
+If you omit the 'name' configuration, we will automatically use the $title of this define class.
 
-##### `default_config`
+## Data types
 
-Data type: `Hash`
+### Gitlab_ci_runner::Log_format
 
-Hash with default configration for runners. This will be merged with the runners_hash config.
+Gitlab Runner log format configuration
 
-Default value: {}
+Alias of `Enum['runner', 'text', 'json']`
+
+### Gitlab_ci_runner::Log_level
+
+Gitlab Runner log level configuration
+
+Alias of `Enum['debug', 'info', 'warn', 'error', 'fatal', 'panic']`
 
 ## Tasks
 

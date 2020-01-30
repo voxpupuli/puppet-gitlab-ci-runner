@@ -33,6 +33,7 @@ group :test do
   gem 'simplecov-console',                                          :require => false
   gem 'parallel_tests',                                             :require => false
   gem 'webmock',                                                    :require => false
+  gem 'toml-rb',                                                    :require => false
 end
 
 group :development do
