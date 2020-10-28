@@ -44,6 +44,70 @@ describe 'gitlab_ci_runner', type: :class do
       it { is_expected.not_to contain_file_line('gitlab-runner-builds_dir') }
       it { is_expected.not_to contain_file_line('gitlab-runner-cache_dir') }
 
+      context 'with config_path => /etc/runner.toml' do
+        let(:params) do
+          {
+            'runner_defaults' => {},
+            'runners' => {},
+            'config_path' => '/etc/runner.toml'
+          }
+        end
+
+        it do
+          is_expected.to contain_file('/etc/runner.toml').with('ensure'  => 'file',
+                                                               'replace' => 'no',
+                                                               'content' => '')
+        end
+      end
+      context 'with config permissions' do
+        let(:params) do
+          {
+            'runner_defaults' => {},
+            'runners' => {},
+            'config_owner' => 'gitlab-runner',
+            'config_group' => 'gitlab-runner',
+            'config_mode' => '0640'
+          }
+        end
+
+        it do
+          is_expected.to contain_file('/etc/gitlab-runner/config.toml').with('owner' => 'gitlab-runner',
+                                                                             'group' => 'gitlab-runner',
+                                                                             'mode'  => '0640')
+        end
+      end
+      context 'with manage_config_dir => true' do
+        let(:params) do
+          {
+            'runner_defaults' => {},
+            'runners' => {},
+            'manage_config_dir' => true
+          }
+        end
+
+        it do
+          is_expected.to contain_file('/etc/gitlab-runner').with('ensure' => 'directory')
+        end
+      end
+      context 'with config dir permissions' do
+        let(:params) do
+          {
+            'runner_defaults' => {},
+            'runners' => {},
+            'manage_config_dir' => true,
+            'config_owner' => 'gitlab-runner',
+            'config_group' => 'gitlab-runner',
+            'config_dir_mode' => '0750'
+          }
+        end
+
+        it do
+          is_expected.to contain_file('/etc/gitlab-runner').with('ensure' => 'directory',
+                                                                 'owner' => 'gitlab-runner',
+                                                                 'group' => 'gitlab-runner',
+                                                                 'mode'  => '0750')
+        end
+      end
       context 'with concurrent => 10' do
         let(:params) do
           {

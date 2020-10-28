@@ -45,6 +45,18 @@
 #   The keyserver which should be used to get the repository key.
 # @param config_path
 #   The path to the config file of Gitlab runner.
+# @param config_owner
+#   The user owning the config file.
+#   (and config directory if managed).
+# @param config_group
+#   The group ownership assigned to the config file
+#   (and config directory if managed).
+# @param config_mode
+#   The file permissions applied to the config file.
+# @param manage_config_dir
+#   Manage the parent directory of the config file.
+# @param config_dir_mode
+#   The file permissions applied to the config directory.
 #
 class gitlab_ci_runner (
   String                     $xz_package_name, # Defaults in module hieradata
@@ -64,6 +76,11 @@ class gitlab_ci_runner (
   Stdlib::HTTPUrl            $repo_base_url            = 'https://packages.gitlab.com',
   Optional[Stdlib::Fqdn]     $repo_keyserver           = undef,
   String                     $config_path              = '/etc/gitlab-runner/config.toml',
+  Optional[String[1]]        $config_owner             = undef,
+  Optional[String[1]]        $config_group             = undef,
+  Optional[Stdlib::Filemode] $config_mode              = undef,
+  Boolean                    $manage_config_dir        = false,
+  Optional[Stdlib::Filemode] $config_dir_mode          = undef,
 ) {
   if $manage_docker {
     # workaround for cirunner issue #1617
