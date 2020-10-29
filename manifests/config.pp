@@ -4,6 +4,11 @@
 #
 class gitlab_ci_runner::config (
   $config_path    = $gitlab_ci_runner::config_path,
+  $config_owner      = $gitlab_ci_runner::config_owner,
+  $config_group      = $gitlab_ci_runner::config_group,
+  $config_mode       = $gitlab_ci_runner::config_mode,
+  $manage_config_dir = $gitlab_ci_runner::manage_config_dir,
+  $config_dir_mode   = $gitlab_ci_runner::config_dir_mode,
   $concurrent     = $gitlab_ci_runner::concurrent,
   $check_interval = $gitlab_ci_runner::check_interval,
   $metrics_server = $gitlab_ci_runner::metrics_server,
@@ -19,6 +24,20 @@ class gitlab_ci_runner::config (
     ensure  => 'file',
     replace => 'no',
     content => '',
+    owner   => $config_owner,
+    group   => $config_group,
+    mode    => $config_mode,
+  }
+
+  if $manage_config_dir {
+    $_config_dir = dirname($config_path)
+
+    file { $_config_dir:
+      ensure => 'directory',
+      owner  => $config_owner,
+      group  => $config_group,
+      mode   => $config_dir_mode,
+    }
   }
 
   if $concurrent {
