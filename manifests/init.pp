@@ -62,7 +62,7 @@ class gitlab_ci_runner (
   String                     $package_ensure           = installed,
   String                     $package_name             = 'gitlab-runner',
   Stdlib::HTTPUrl            $repo_base_url            = 'https://packages.gitlab.com',
-  Optional[Stdlib::Fqdn]     $repo_keyserver           = undef,
+  Optional[String]           $repo_keyserver           = undef,
   String                     $config_path              = '/etc/gitlab-runner/config.toml',
 ) {
   if $manage_docker {
