@@ -47,23 +47,23 @@
 #   The path to the config file of Gitlab runner.
 #
 class gitlab_ci_runner (
-  String                     $xz_package_name, # Defaults in module hieradata
-  Hash                       $runners                  = {},
-  Hash                       $runner_defaults          = {},
-  Optional[Integer]          $concurrent               = undef,
-  Optional[Integer]          $check_interval           = undef,
-  Optional[String]           $builds_dir               = undef,
-  Optional[String]           $cache_dir                = undef,
-  Optional[Pattern[/.*:.+/]] $metrics_server           = undef,
-  Optional[Pattern[/.*:.+/]] $listen_address           = undef,
-  Optional[String]           $sentry_dsn               = undef,
-  Boolean                    $manage_docker            = false,
-  Boolean                    $manage_repo              = true,
-  String                     $package_ensure           = installed,
-  String                     $package_name             = 'gitlab-runner',
-  Stdlib::HTTPUrl            $repo_base_url            = 'https://packages.gitlab.com',
-  Optional[String]           $repo_keyserver           = undef,
-  String                     $config_path              = '/etc/gitlab-runner/config.toml',
+  String                                $xz_package_name, # Defaults in module hieradata
+  Hash                                  $runners          = {},
+  Hash                                  $runner_defaults  = {},
+  Optional[Integer]                     $concurrent       = undef,
+  Optional[Integer]                     $check_interval   = undef,
+  Optional[String]                      $builds_dir       = undef,
+  Optional[String]                      $cache_dir        = undef,
+  Optional[Pattern[/.*:.+/]]            $metrics_server   = undef,
+  Optional[Pattern[/.*:.+/]]            $listen_address   = undef,
+  Optional[String]                      $sentry_dsn       = undef,
+  Boolean                               $manage_docker    = false,
+  Boolean                               $manage_repo      = true,
+  String                                $package_ensure   = installed,
+  String                                $package_name     = 'gitlab-runner',
+  Stdlib::HTTPUrl                       $repo_base_url    = 'https://packages.gitlab.com',
+  Optional[Gitlab_ci_runner::Keyserver] $repo_keyserver   = undef,
+  String                                $config_path      = '/etc/gitlab-runner/config.toml',
 ) {
   if $manage_docker {
     # workaround for cirunner issue #1617
