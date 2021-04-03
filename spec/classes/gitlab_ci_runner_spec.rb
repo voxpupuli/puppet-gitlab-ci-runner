@@ -282,6 +282,7 @@ describe 'gitlab_ci_runner', type: :class do
       end
 
       if facts[:os]['family'] == 'Debian'
+        # <= v3.0.0
         context 'with manage_repo => true and repo_keyserver => keys.gnupg.net' do
           let(:params) do
             super().merge(
@@ -295,6 +296,38 @@ describe 'gitlab_ci_runner', type: :class do
 
           it do
             is_expected.to contain_apt__source('apt_gitlabci').with_key('id' => 'F6403F6544A38863DAA0B6E03F01618A51312F3F', 'server' => 'keys.gnupg.net')
+          end
+        end
+
+        # allowed > 3.0.0 (see issue #101)
+        context 'with manage_repo => true and repo_keyserver => hkp://keys.gnupg.net:80' do
+          let(:params) do
+            super().merge(
+              manage_repo: true,
+              repo_keyserver: 'hkp://keys.gnupg.net:80'
+            )
+          end
+
+          it { is_expected.to compile }
+          it { is_expected.to contain_class('gitlab_ci_runner::repo') }
+
+          it do
+            is_expected.to contain_apt__source('apt_gitlabci').with_key('id' => 'F6403F6544A38863DAA0B6E03F01618A51312F3F', 'server' => 'hkp://keys.gnupg.net:80')
+          end
+        end
+        context 'with manage_repo => true and repo_keyserver => https://keys.gnupg.net:88' do
+          let(:params) do
+            super().merge(
+              manage_repo: true,
+              repo_keyserver: 'https://keys.gnupg.net:88'
+            )
+          end
+
+          it { is_expected.to compile }
+          it { is_expected.to contain_class('gitlab_ci_runner::repo') }
+
+          it do
+            is_expected.to contain_apt__source('apt_gitlabci').with_key('id' => 'F6403F6544A38863DAA0B6E03F01618A51312F3F', 'server' => 'https://keys.gnupg.net:88')
           end
         end
       end
