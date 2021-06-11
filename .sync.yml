@@ -1,21 +1,4 @@
 ---
-.travis.yml:
-  before_install:
-    - yes | gem update --system
-    - bundle --version
-    - git clone https://github.com/puppetlabs/puppetlabs-ruby_task_helper ../ruby_task_helper
-    - scripts/start-gitlab.sh
-  docker_sets:
-    - set: centos6-64
-    - set: centos7-64
-    - set: centos8-64
-    - set: debian8-64
-    - set: debian9-64
-    - set: debian10-64
-    - set: ubuntu1604-64
-    - set: ubuntu1804-64
-  secure: "uwKQeb0ngonWkgYCFTgrzALAOhjlTBXmJMTdB37z/E9cdFRqwDJy6aUpgXTMCareaiEUaKnkPW0+nNRZZl+ewA7JOb1oBqx2rYNf1URX+eRQLT5yZjD+9h2r1pSNId3ku45q4WhtWRsZ/foD3iPM+S
-2g2BI28Ui4/AZYvz//YBa9uWpxVb1pqr2x6aAWxfh3pIGAiok8YnsYZ3qoW0MheGAcL4ReLsdQD9+eSUHYx+eA0zHvMbBVpdTnwFbEgD0WLV5bhaNShHBYWLrOKrYZFsd+XZjOyC8jDiYReeo219KHjDd5RZL38FC8Mtg+oHjUKUvvq2GEKDpPGq1BJ3opBChYbPfRx4KVQpYBeYap9PtkE2s9rSbvsARYVELl9nVoW0j2+nZYhL94efXieEiX/Qt/rwyR9YFvuRO71hzA4nIIaC11pz+kLm1uzJsLgd5tVAlUQjhjvUecRdL98XoI0WTGm3l4sT/ptqfdRvP4XJj0jN4twEQ6FKKUAQ0oaPOZwM2HF4YRN9PtijqU1VoZsUEpYtJECGQjrWEADpYD4qpRxpgGw/4/k/McRFegLC1oCSNqB2uiZIqyTmcr9X5ycNkG0yis4Koq+Chc4CXgZTOAwa2AgzUI8qPdBTI/1G1CBSiGta1X5MKHQM2yEgj2G0jnDAFhi5Im1ylYjBb5O+k="
 Gemfile:
   optional:
     ':test':

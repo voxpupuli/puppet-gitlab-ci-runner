@@ -1,8 +1,10 @@
 fixtures:
   repositories:
-    stdlib: "https://github.com/puppetlabs/puppetlabs-stdlib.git"
-    apt: "https://github.com/puppetlabs/puppetlabs-apt.git"
-    docker: "https://github.com/puppetlabs/puppetlabs-docker.git"
+    stdlib: https://github.com/puppetlabs/puppetlabs-stdlib.git
+    apt: https://github.com/puppetlabs/puppetlabs-apt.git
+    docker: https://github.com/puppetlabs/puppetlabs-docker.git
+    ruby_task_helper: https://github.com/puppetlabs/puppetlabs-ruby_task_helper.git
+    translate: https://github.com/puppetlabs/puppetlabs-translate.git
     yumrepo_core:
       repo: https://github.com/puppetlabs/puppetlabs-yumrepo_core.git
       puppet_version: ">= 6.0.0"
