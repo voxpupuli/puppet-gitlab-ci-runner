@@ -3,9 +3,12 @@
 # @api private
 #
 class gitlab_ci_runner::repo (
-  $repo_base_url  = $gitlab_ci_runner::repo_base_url,
-  $repo_keyserver = $gitlab_ci_runner::repo_keyserver,
-  $package_name   = $gitlab_ci_runner::package_name,
+  $repo_base_url        = $gitlab_ci_runner::repo_base_url,
+  $repo_keyserver       = $gitlab_ci_runner::repo_keyserver,
+  $repo_keycontent      = $gitlab_ci_runner::repo_keycontent,
+  $repo_keysource       = $gitlab_ci_runner::repo_keysource,
+  $repo_keyweak_ssl     = $gitlab_ci_runner::repo_keyweak_ssl,
+  $package_name         = $gitlab_ci_runner::package_name,
 ) {
   assert_private()
   case $facts['os']['family'] {
@@ -15,8 +18,11 @@ class gitlab_ci_runner::repo (
         location => "${repo_base_url}/runner/${package_name}/${facts['os']['distro']['id'].downcase}/",
         repos    => 'main',
         key      => {
-          'id'     => 'F6403F6544A38863DAA0B6E03F01618A51312F3F',
-          'server' => $repo_keyserver,
+          'id'       => 'F6403F6544A38863DAA0B6E03F01618A51312F3F',
+          'server'   => $repo_keyserver,
+          'content'  => $repo_keycontent,
+          'source'   => $repo_keysource,
+          'weak_ssl' => $repo_keyweak_ssl,
         },
         include  => {
           'src' => false,

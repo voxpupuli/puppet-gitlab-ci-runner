@@ -43,27 +43,37 @@
 #   The base repository url.
 # @param repo_keyserver
 #   The keyserver which should be used to get the repository key.
+# @param repo_keycontent
+#   Supplies the entire GPG key. Useful in case the key can't be fetched from a remote location and using a file resource is inconvenient.
+# @param repo_keysource
+#   Specifies the location of an existing GPG key file to copy. Valid options: a string containing a URL (ftp://, http://, or https://) or 
+#   an absolute path.
+# @param repo_keyweak_ssl
+#    Specifies whether strict SSL verification on a https URL should be disabled. Valid options: true or false.
 # @param config_path
 #   The path to the config file of Gitlab runner.
 #
 class gitlab_ci_runner (
-  String                     $xz_package_name, # Defaults in module hieradata
-  Hash                       $runners                  = {},
-  Hash                       $runner_defaults          = {},
-  Optional[Integer]          $concurrent               = undef,
-  Optional[Integer]          $check_interval           = undef,
-  Optional[String]           $builds_dir               = undef,
-  Optional[String]           $cache_dir                = undef,
-  Optional[Pattern[/.*:.+/]] $metrics_server           = undef,
-  Optional[Pattern[/.*:.+/]] $listen_address           = undef,
-  Optional[String]           $sentry_dsn               = undef,
-  Boolean                    $manage_docker            = false,
-  Boolean                    $manage_repo              = true,
-  String                     $package_ensure           = installed,
-  String                     $package_name             = 'gitlab-runner',
-  Stdlib::HTTPUrl            $repo_base_url            = 'https://packages.gitlab.com',
-  Optional[Stdlib::Fqdn]     $repo_keyserver           = undef,
-  String                     $config_path              = '/etc/gitlab-runner/config.toml',
+  String                                                          $xz_package_name, # Defaults in module hieradata
+  Hash                                                            $runners                  = {},
+  Hash                                                            $runner_defaults          = {},
+  Optional[Integer]                                               $concurrent               = undef,
+  Optional[Integer]                                               $check_interval           = undef,
+  Optional[String]                                                $builds_dir               = undef,
+  Optional[String]                                                $cache_dir                = undef,
+  Optional[Pattern[/.*:.+/]]                                      $metrics_server           = undef,
+  Optional[Pattern[/.*:.+/]]                                      $listen_address           = undef,
+  Optional[String]                                                $sentry_dsn               = undef,
+  Boolean                                                         $manage_docker            = false,
+  Boolean                                                         $manage_repo              = true,
+  String                                                          $package_ensure           = installed,
+  String                                                          $package_name             = 'gitlab-runner',
+  Stdlib::HTTPUrl                                                 $repo_base_url            = 'https://packages.gitlab.com',
+  Optional[Stdlib::Fqdn]                                          $repo_keyserver           = undef,
+  Optional[String]                                                $repo_keycontent          = undef,
+  Optional[Pattern[/\Ahttps?:\/\//, /\Aftp:\/\//, /\A\/\w+/]]     $repo_keysource           = undef,
+  Boolean                                                         $repo_keyweak_ssl         = false,
+  String                                                          $config_path              = '/etc/gitlab-runner/config.toml',
 ) {
   if $manage_docker {
     # workaround for cirunner issue #1617

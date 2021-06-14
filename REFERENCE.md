@@ -169,6 +169,33 @@ The keyserver which should be used to get the repository key.
 
 Default value: `undef`
 
+##### `repo_keycontent`
+
+Data type: `Optional[String]`
+
+The key content to use, useful when internet connexion is not available.
+
+Default value: `undef`
+
+##### `repo_keysource`
+
+Data type: `Optional[Pattern[/\Ahttps?:\/\//, /\Aftp:\/\//, /\A\/\w+/]`
+
+The key source to use, useful when internet connexion is not available and you want to use 
+an internal source.
+
+Default value: `undef`
+
+##### `repo_keyweak_ssl`
+
+Data type: `Boolean`
+
+Specifies whether strict SSL verification on a https URL should be disabled when fetching the key. 
+Valid options: true or false.
+
+
+Default value: `undef`
+
 ##### `config_path`
 
 Data type: `String`

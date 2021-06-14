@@ -230,7 +230,10 @@ describe 'gitlab_ci_runner', type: :class do
                 repos: 'main',
                 key: {
                   'id' => 'F6403F6544A38863DAA0B6E03F01618A51312F3F',
-                  'server' => undef_value
+                  'server' => undef_value,
+                  'content' => undef_value,
+                  'source' => undef_value,
+                  'weak_ssl' => false
                 },
                 include: {
                   'src' => false,
@@ -294,7 +297,41 @@ describe 'gitlab_ci_runner', type: :class do
           it { is_expected.to contain_class('gitlab_ci_runner::repo') }
 
           it do
-            is_expected.to contain_apt__source('apt_gitlabci').with_key('id' => 'F6403F6544A38863DAA0B6E03F01618A51312F3F', 'server' => 'keys.gnupg.net')
+            is_expected.to contain_apt__source('apt_gitlabci').with_key('id' => 'F6403F6544A38863DAA0B6E03F01618A51312F3F','server' => 'keys.gnupg.net', 'content' => undef_value,'source' => undef_value,'weak_ssl' => false)
+          end
+        end
+      end
+      if facts[:os]['family'] == 'Debian'
+        context 'with manage_repo => true and repo_keysource => http://path.to/gpg.key' do
+          let(:params) do
+            super().merge(
+              manage_repo: true,
+              repo_keysource: 'http://path.to/gpg.key'
+            )
+          end
+
+          it { is_expected.to compile }
+          it { is_expected.to contain_class('gitlab_ci_runner::repo') }
+
+          it do
+            is_expected.to contain_apt__source('apt_gitlabci').with_key('id' => 'F6403F6544A38863DAA0B6E03F01618A51312F3F','server'=> undef_value,'content'=> undef_value,'source' => 'http://path.to/gpg.key','weak_ssl' => false)
+          end
+        end
+      end
+      if facts[:os]['family'] == 'Debian'
+        context 'with manage_repo => true and repo_keycontent => "somebase64encodedContent"' do
+          let(:params) do
+            super().merge(
+              manage_repo: true,
+              repo_keycontent: 'somebase64encodedContent'
+            )
+          end
+
+          it { is_expected.to compile }
+          it { is_expected.to contain_class('gitlab_ci_runner::repo') }
+
+          it do
+            is_expected.to contain_apt__source('apt_gitlabci').with_key('id' => 'F6403F6544A38863DAA0B6E03F01618A51312F3F','server' => undef_value,'content' => 'somebase64encodedContent','source' => undef_value,'weak_ssl' => false)
           end
         end
       end
